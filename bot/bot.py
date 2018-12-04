@@ -3,8 +3,7 @@ import logging
 import settings
 import ephem
 import datetime
-import schedule
-import time
+import json
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     level=logging.INFO,
@@ -69,6 +68,12 @@ def next_full_moon(bot, update, args):
         update.message.reply_text('Введите дату в правильном формате')
 
 
+def cities(bot, update, args):
+    with open('cities.json') as f:
+        data = json.load(f)
+    print(data)
+
+
 def main():
     mybot = Updater(settings.API_KEY)
 
@@ -78,6 +83,7 @@ def main():
     dp.add_handler(CommandHandler("planet", const_planet, pass_args=True))
     dp.add_handler(CommandHandler("wordcount", word_count, pass_args=True))
     dp.add_handler(CommandHandler("next_full_moon", next_full_moon, pass_args=True))
+    dp.add_handler(CommandHandler("cities", cities, pass_args=True))
     dp.add_handler(MessageHandler(Filters.text, talk_to_me))
 
     mybot.start_polling()
