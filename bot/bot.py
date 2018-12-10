@@ -1,4 +1,5 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, RegexHandler
+from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 import datetime
 import ephem
@@ -20,7 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
 def greet_user(bot, update, user_data):
     emo = get_user_emo(user_data)
     text = f'Привет {emo}'
-    update.message.reply_text(text)
+    update.message.reply_text(text, reply_markup=get_keyboard())
 
 
 def talk_to_me(bot, update, user_data):
@@ -29,7 +30,7 @@ def talk_to_me(bot, update, user_data):
     logging.info(f"User: {update.message.chat.username}, "
                  f"Chat id: {update.message.chat.id}, "
                  f"Message: {update.message.text}")
-    update.message.reply_text(user_text)
+    update.message.reply_text(user_text, reply_markup=get_keyboard())
 
 
 def const_planet(bot, update, args):
@@ -101,6 +102,23 @@ def send_cat_picture(bot, update, user_data):
     bot.send_photo(chat_id=update.message.chat.id, photo=open(cat_pic, 'rb'))
 
 
+def change_avatar(bot, update, user_data):
+    if 'emo' in user_data:
+        del user_data['emo']
+    emo = get_user_emo(user_data)
+    update.message.reply_text(f"New avatar: {emo}", reply_markup=get_keyboard())
+
+
+def get_contact(bot, update, user_data):
+    print(update.message.contact)
+    update.message.reply_text(f"Done {get_user_emo(user_data)}", reply_markup=get_keyboard())
+
+
+def get_location(bot, update, user_data):
+    print(update.message.location)
+    update.message.reply_text(f"Done {get_user_emo(user_data)}", reply_markup=get_keyboard())
+
+
 def get_user_emo(user_data):
     if 'emo' in user_data:
         return user_data['emo']
@@ -109,10 +127,20 @@ def get_user_emo(user_data):
         return user_data['emo']
 
 
+def get_keyboard():
+    contact_button = KeyboardButton('Contacts', request_contact=True)
+    location_button = KeyboardButton('Geolocation', request_location=True)
+    my_keyboard = ReplyKeyboardMarkup([
+                                        ["Get cat", "Change avatar"],
+                                        [contact_button, location_button],
+                                     ], resize_keyboard=True)
+    return my_keyboard
+
 def main():
     mybot = Updater(settings.API_KEY)
 
     logging.info("Bot starting")
+
     dp = mybot.dispatcher
     dp.add_handler(CommandHandler("start", greet_user, pass_user_data=True))
     dp.add_handler(CommandHandler("planet", const_planet, pass_args=True))
@@ -120,6 +148,10 @@ def main():
     dp.add_handler(CommandHandler("next_full_moon", next_full_moon, pass_args=True))
     dp.add_handler(CommandHandler("cat", send_cat_picture, pass_user_data=True))
     dp.add_handler(CommandHandler("cities", cities, pass_args=True, pass_user_data=True))
+    dp.add_handler(RegexHandler("^(Get cat)$", send_cat_picture, pass_user_data=True))
+    dp.add_handler(RegexHandler("^(Change avatar)$", change_avatar, pass_user_data=True))
+    dp.add_handler(MessageHandler(Filters.contact, get_contact, pass_user_data=True))
+    dp.add_handler(MessageHandler(Filters.location, get_location, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.text, talk_to_me, pass_user_data=True))
 
     mybot.start_polling()
